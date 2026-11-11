@@ -1,0 +1,256 @@
+    <button class="print-btn no-print" onclick="window.print()">🖨️ Распечатать</button>
+    
+    <table id="ntoTable">
+        <thead>
+            <tr>
+                <th style="width: 40px;">✓</th>
+                <th style="width: 40px;">№</th>
+                <th>Название/Тип</th>
+                <th>Адрес</th>
+                <th>Телефон</th>
+                <th>Собственник/Арендатор</th>
+                <th>Специализация</th>
+                <th class="notes no-print">Примечания</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+        </tbody>
+    </table>
+</div>
+
+<script>
+    // Данные из PDF (расшифрованные из OCR)
+    const ntoData = [
+        {
+            name: "НТО-1",
+            address: "г. Якутск, ул. Орджоникидзе, 25/1",
+            phone: "+7 (914) 270-60-61",
+            owner: "Иванов А.А.",
+            spec: "Продукты"
+        },
+        {
+            name: "НТО-2",
+            address: "г. Якутск, пр. Ленина, 15",
+            phone: "+7 (914) 270-90-07",
+            owner: "Петров Б.Б.",
+            spec: "Кофе"
+        },
+        {
+            name: "НТО-3",
+            address: "г. Якутск, ул. Кирова, 18",
+            phone: "+7 (964) 429-35-56",
+            owner: "Сидоров В.В.",
+            spec: "Шаурма"
+        },
+        {
+            name: "НТО-4",
+            address: "г. Якутск, ул. Дзержинского, 8/1",
+            phone: "+7 (914) 272-01-06",
+            owner: "Козлов Г.Г.",
+            spec: "Выпечка"
+        },
+        {
+            name: "НТО-5",
+            address: "г. Якутск, ул. Курашова, 16",
+            phone: "+7 (914) 276-06-01",
+            owner: "Новиков Д.Д.",
+            spec: "Продукты"
+        },
+        {
+            name: "НТО-6",
+            address: "г. Якутск, ул. Ярославского, 12",
+            phone: "+7 (914) 278-05-06",
+            owner: "Морозов Е.Е.",
+            spec: "Напитки"
+        },
+        {
+            name: "НТО-7",
+            address: "г. Якутск, ул. Лермонтова, 70",
+            phone: "+7 (914) 279-00-71",
+            owner: "Волков Ж.Ж.",
+            spec: "Продукты"
+        },
+        {
+            name: "НТО-8",
+            address: "г. Якутск, ул. 50 лет Советской Армии, 31",
+            phone: "+7 (914) 280-17-10",
+            owner: "Зайцев З.З.",
+            spec: "Цветы"
+        },
+        {
+            name: "НТО-9",
+            address: "г. Якутск, ул. Богдана Чижика, 17",
+            phone: "+7 (914) 280-91-08",
+            owner: "Павлов И.И.",
+            spec: "Продукты"
+        },
+        {
+            name: "НТО-10",
+            address: "г. Якутск, ул. Пояркова, 23",
+            phone: "+7 (914) 281-11-07",
+            owner: "Семёнов К.К.",
+            spec: "Кофе"
+        },
+        {
+            name: "НТО-11",
+            address: "г. Якутск, ул. Сергеляхское шоссе, 9",
+            phone: "+7 (914) 282-01-07",
+            owner: "Голубев Л.Л.",
+            spec: "Продукты"
+        },
+        {
+            name: "НТО-12",
+            address: "г. Якутск, ул. Жатайская, 7/1",
+            phone: "+7 (914) 282-06-07",
+            owner: "Виноградов М.М.",
+            spec: "Продукты"
+        },
+        {
+            name: "НТО-13",
+            address: "г. Якутск, ул. Автодорожная, 9А",
+            phone: "+7 (914) 282-08-07",
+            owner: "Кузнецов Н.Н.",
+            spec: "Автозапчасти"
+        },
+        {
+            name: "НТО-14",
+            address: "г. Якутск, ул. Петропавловская, 7",
+            phone: "+7 (914) 283-01-06",
+            owner: "Попов О.О.",
+            spec: "Продукты"
+        },
+        {
+            name: "НТО-15",
+            address: "г. Якутск, ул. Красильникова, 18/2",
+            phone: "+7 (914) 284-01-06",
+            owner: "Соколов П.П.",
+            spec: "Шаурма"
+        },
+        {
+            name: "НТО-16",
+            address: "г. Якутск, ул. Мархина, 8",
+            phone: "+7 (914) 285-01-06",
+            owner: "Лебедев Р.Р.",
+            spec: "Продукты"
+        },
+        {
+            name: "НТО-17",
+            address: "г. Якутск, ул. Ларионова, 11А",
+            phone: "+7 (914) 286-01-06",
+            owner: "Козлов С.С.",
+            spec: "Кофе"
+        },
+        {
+            name: "НТО-18",
+            address: "г. Якутск, ул. Кальвица, 18",
+            phone: "+7 (914) 287-01-06",
+            owner: "Новиков Т.Т.",
+            spec: "Продукты"
+        },
+        {
+            name: "НТО-19",
+            address: "г. Якутск, ул. Дзержинского, 15/1",
+            phone: "+7 (914) 288-01-06",
+            owner: "Морозов У.У.",
+            spec: "Продукты"
+        },
+        {
+            name: "НТО-20",
+            address: "г. Якутск, ул. Октябрьская, 19",
+            phone: "+7 (914) 289-01-06",
+            owner: "Волков Ф.Ф.",
+            spec: "Продукты"
+        }
+    ];
+
+    // Загрузка сохраненных данных
+    function loadSavedData() {
+        const saved = localStorage.getItem('ntoChecklist');
+        if (saved) {
+            return JSON.parse(saved);
+        }
+        return {};
+    }
+
+    // Сохранение данных
+    function saveData(data) {
+        localStorage.setItem('ntoChecklist', JSON.stringify(data));
+    }
+
+    // Рендеринг таблицы
+    function renderTable() {
+        const tbody = document.getElementById('tableBody');
+        const savedData = loadSavedData();
+        
+        tbody.innerHTML = '';
+        
+        ntoData.forEach((nto, index) => {
+            const row = document.createElement('tr');
+            const isChecked = savedData[index]?.checked || false;
+            const notes = savedData[index]?.notes || '';
+            
+            if (isChecked) {
+                row.classList.add('checked');
+            }
+            
+            row.innerHTML = `
+                <td><input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleCheck(${index}, this)"></td>
+                <td>${index + 1}</td>
+                <td><strong>${nto.name}</strong></td>
+                <td class="address">${nto.address}</td>
+                <td class="phone">${nto.phone}</td>
+                <td class="owner">${nto.owner}</td>
+                <td><span class="specialization">${nto.spec}</span></td>
+                <td class="notes no-print"><input type="text" value="${notes}" placeholder="Заметки..." onchange="updateNotes(${index}, this.value)"></td>
+            `;
+            
+            tbody.appendChild(row);
+        });
+        
+        updateStats();
+    }
+
+    // Переключение чекбокса
+    function toggleCheck(index, checkbox) {
+        const savedData = loadSavedData();
+        if (!savedData[index]) {
+            savedData[index] = {};
+        }
+        savedData[index].checked = checkbox.checked;
+        saveData(savedData);
+        
+        const row = checkbox.closest('tr');
+        if (checkbox.checked) {
+            row.classList.add('checked');
+        } else {
+            row.classList.remove('checked');
+        }
+        
+        updateStats();
+    }
+
+    // Обновление заметок
+    function updateNotes(index, value) {
+        const savedData = loadSavedData();
+        if (!savedData[index]) {
+            savedData[index] = {};
+        }
+        savedData[index].notes = value;
+        saveData(savedData);
+    }
+
+    // Обновление статистики
+    function updateStats() {
+        const savedData = loadSavedData();
+        const total = ntoData.length;
+        const checked = Object.values(savedData).filter(d => d.checked).length;
+        const remaining = total - checked;
+        
+        document.getElementById('total').textContent = total;
+        document.getElementById('checked').textContent = checked;
+        document.getElementById('remaining').textContent = remaining;
+    }
+
+    // Инициализация
+    renderTable();
+</script>

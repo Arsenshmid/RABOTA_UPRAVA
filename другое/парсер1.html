@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Схема НТО — Автодорожный округ, Якутск</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: -apple-system, Segoe UI, Roboto, sans-serif; display:flex; height:100vh; background:#f4f6f8; }
+  #sidebar { width: 380px; background:#fff; border-right:1px solid #ddd; display:flex; flex-direction:column; }
+  #sidebar h2 { margin:0; padding:14px; background:#1e3a5f; color:#fff; font-size:16px; }
+  #search-box { padding:10px; border-bottom:1px solid #eee; }
+  #search { width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-size:14px; }
+  #filters { display:flex; gap:6px; padding:8px 10px; flex-wrap:wrap; border-bottom:1px solid #eee; }
+  .filter-btn { padding:4px 10px; font-size:12px; border:1px solid #ccc; background:#fff; border-radius:12px; cursor:pointer; }
+  .filter-btn.active { background:#1e3a5f; color:#fff; border-color:#1e3a5f; }
+  #list { flex:1; overflow-y:auto; }
+  .item { padding:10px 12px; border-bottom:1px solid #eee; cursor:pointer; font-size:13px; }
+  .item:hover { background:#f0f4f8; }
+  .item.selected { background:#e3f2fd; border-left:4px solid #1e3a5f; }
+  .item .addr { font-weight:600; color:#222; }
+  .item .meta { color:#666; font-size:12px; margin-top:3px; }
+  .badge { display:inline-block; padding:1px 6px; border-radius:8px; font-size:10px; color:#fff; margin-right:4px; }
+  #map { flex:1; }
+  #modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000; align-items:center; justify-content:center; }
+  #modal-bg.show { display:flex; }
+  #modal { background:#fff; padding:20px; border-radius:8px; width:420px; max-width:90%; }
+  #modal h3 { margin-top:0; }
+  #modal textarea { width:100%; height:100px; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:inherit; }
+  #modal .btn-row { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+  #modal button { padding:6px 14px; border:none; border-radius:4px; cursor:pointer; }
+  .btn-save { background:#1e3a5f; color:#fff; }
+  .btn-cancel { background:#eee; }
+  .legend { background:#fff; padding:10px; border-radius:4px; line-height:1.8; font-size:12px; box-shadow:0 1px 4px rgba(0,0,0,.2); }
+  .legend i { display:inline-block; width:12px; height:12px; margin-right:6px; border-radius:50%; vertical-align:middle; }
+  .status-terminated { color:#c00; font-weight:600; }
+  .status-active { color:#080; }
+  .status-auction { color:#c70; }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <h2>НТО Автодорожного округа</h2>
+  <div id="search-box">
+    <input id="search" type="text" placeholder="Поиск: адрес, владелец, специализация...">
+  </div>
+  <div id="filters">
+    <button class="filter-btn active" data-filter="all">Все</button>
+    <button class="filter-btn" data-filter="active">Действующие</button>
+    <button class="filter-btn" data-filter="terminated">Расторгнутые</button>
+    <button class="filter-btn" data-filter="auction">На аукцион</button>
+  </div>
+  <div id="list"></div>
+</div>
+
+<div id="map"></div>
+
+<div id="modal-bg">
+  <div id="modal">
+    <h3 id="modal-title">Редактирование</h3>
+    <p id="modal-addr" style="color:#666;font-size:13px;"></p>
+    <label>Статус:</label>
+    <select id="modal-status" style="width:100%;padding:6px;margin:6px 0;">
+      <option value="active">Действует</option>
+      <option value="terminated">Расторгнут</option>
+      <option value="auction">На аукцион</option>
+    </select>
+    <label>Описание / заметки:</label>
+    <textarea id="modal-note" placeholder="Ваши пометки..."></textarea>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeModal()">Отмена</button>
+      <button class="btn-save" onclick="saveModal()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// === ДАННЫЕ НТО (координаты приблизительные, по Автодорожному округу Якутска) ===
+const nto_data = [
+  {id:1,  addr:"Ленина (ост. к/т Лена), 45В", lat:62.0290, lon:129.7250, area:24, owner:"", type:"Теплая остановка", spec:"Теплая остановка", contract:"Договор с ДИЗО"},
+  {id:2,  addr:"Сергеляхское шоссе, 4 км", lat:62.0650, lon:129.6200, area:15, owner:"ИП Егоров П.С.", type:"Павильон", spec:"Розлив воды", contract:"Расторгнут", status:"terminated"},
+  {id:3,  addr:"Дежнева, 89К", lat:62.0210, lon:129.6950, area:32, owner:"ИП Алексеева Н.Е.", type:"Павильон", spec:"Продукты"},
+  {id:4,  addr:"Тимирязева, 51В", lat:62.0275, lon:129.7050, area:34, owner:"ООО СК «Опора»", type:"Павильон", spec:"Продукты"},
+  {id:5,  addr:"Тимирязева, 53А", lat:62.0280, lon:129.7020, area:46, owner:"ИП Кусябкулова Г.М.", type:"Павильон", spec:"Продукты"},
+  {id:6,  addr:"Мкр. ПТФ, 16", lat:62.0050, lon:129.6550, area:30, owner:"ИП Романова Л.П.", type:"Павильон", spec:"Общепит"},
+  {id:7,  addr:"Пр. М-Николаева, 27В", lat:62.0340, lon:129.6850, area:51, owner:"ИП Соловьев А.С.", type:"Павильон", spec:"Общепит"},
+  {id:8,  addr:"Красильникова, 2/1", lat:62.0250, lon:129.6750, area:60, owner:"ИП Копасова Р.Б.", type:"Павильон", spec:"Продукты"},
+  {id:9,  addr:"Пр. М-Николаева, 26", lat:62.0335, lon:129.6880, area:80, owner:"ООО «Водник»", type:"Павильон", spec:"Розлив воды"},
+  {id:10, addr:"Пр. М-Николаева, 26В", lat:62.0338, lon:129.6870, area:27, owner:"ИП Андреюк С.А.", type:"Павильон", spec:"Автосервис"},
+  {id:11, addr:"Пр. М-Николаева, 36/6", lat:62.0380, lon:129.6700, area:42.3, owner:"ИП Стрекач А.В.", type:"Павильон", spec:"Продукты", contract:"Расторгнут", status:"terminated"},
+  {id:12, addr:"Пр. М-Николаева, 40", lat:62.0395, lon:129.6660, area:29.8, owner:"ИП Миннигареева А.И.", type:"Павильон", spec:"Продукты"},
+  {id:13, addr:"Пр. М-Николаева, 40 (хлеб)", lat:62.0396, lon:129.6665, area:78.7, owner:"АО «Якутский хлебокомбинат»", type:"Павильон", spec:"Хлеб и продукты"},
+  {id:14, addr:"Пр. М-Николаева, 40/1В", lat:62.0398, lon:129.6670, area:49.2, owner:"ИП Степурина Е.В.", type:"Павильон", spec:"Продукты"},
+  {id:15, addr:"Пр. М-Николаева, 40/5", lat:62.0400, lon:129.6675, area:10.6, owner:"ОАО «Якутская птицефабрика»", type:"Павильон", spec:"Яйцо"},
+  {id:16, addr:"Пр. М-Николаева, 40/7", lat:62.0402, lon:129.6680, area:20, owner:"ИП Убратимов З.Х.", type:"Павильон", spec:"Фрукты-овощи"},
+  {id:17, addr:"Пр. М-Николаева, 40/1", lat:62.0399, lon:129.6672, area:26.7, owner:"ИП Миннигареева А.И.", type:"Павильон", spec:"Фрукты-овощи"},
+  {id:18, addr:"Сергеляхское шоссе, 1 км (ост. Агату)", lat:62.0550, lon:129.6500, area:34, owner:"ИП Летенкова Н.И.", type:"Павильон", spec:"Продукты"},
+  {id:19, addr:"Мкр. ПТФ, 6В", lat:62.0060, lon:129.6580, area:93.3, owner:"ООО «Чужина»", type:"Павильон", spec:"Продукты"},
+  {id:20, addr:"Мкр. ПТФ, 11 (конечная ост.)", lat:62.0020, lon:129.6450, area:15.6, owner:"ИП Абдуллаева М.А.", type:"Павильон", spec:"Фрукты-овощи"},
+  {id:21, addr:"Покровский тракт, 10 км (Ефросинья)", lat:61.9500, lon:129.7500, area:30.2, owner:"ИП Богатырева О.Ю.", type:"Павильон", spec:"Продукты"},
+  {id:22, addr:"Покровский тракт, 10 км (Оазис)", lat:61.9510, lon:129.7480, area:13.6, owner:"ИП Сафаров Г.", type:"Павильон", spec:"Фрукты-овощи", contract:"Расторгнут", status:"terminated"},
+  {id:23, addr:"Чернышевского, 101А", lat:62.0180, lon:129.7050, area:30, owner:"ИП Федоров Д.А.", type:"Павильон", spec:"Местные товары"},
+  {id:24, addr:"Чернышевского, 101А (2)", lat:62.0182, lon:129.7055, area:30, owner:"ИП Федоров Д.А.", type:"Павильон", spec:"Фрукты-овощи"},
+  {id:25, addr:"Пр. М-Николаева, 25К", lat:62.0330, lon:129.6860, area:96, owner:"ИП Васильев В.С.", type:"Павильон", spec:"Общепит"},
+  {id:26, addr:"Пр. М-Николаева, 40/5К", lat:62.0401, lon:129.6678, area:58, owner:"ИП Чернобривец О.Г.", type:"Павильон", spec:"Продукты"},
+  {id:27, addr:"Дежнева, 81К", lat:62.0205, lon:129.6960, area:68.8, owner:"ИП Ноговицын Е.Г.", type:"Павильон", spec:"Автозапчасти"},
+  {id:28, addr:"Ленина, 45А", lat:62.0288, lon:129.7240, area:128.1, owner:"АО «Якутский хлебокомбинат»", type:"Павильон", spec:"Хлеб и продукты"},
+  {id:29, addr:"Пр. М-Николаева, 2В", lat:62.0315, lon:129.6930, area:130, owner:"ООО «Газкомплект»", type:"Павильон", spec:"Газовое оборудование"},
+  {id:30, addr:"Покровский тракт, 10 км (Речевая школа)", lat:61.9520, lon:129.7510, area:30, owner:"ИП Лезнев С.О.", type:"Павильон", spec:"Продукты"},
+  {id:31, addr:"Покровский тракт, 5 км (прав. сторона)", lat:61.9800, lon:129.7350, area:31.5, owner:"ИП Яковлев В.В.", type:"Павильон", spec:"Розлив воды"},
+  {id:32, addr:"Мкр. ПТФ, ул. Студенческая, 1А", lat:62.0070, lon:129.6600, area:85, owner:"ИП Франц Л.А.", type:"Павильон", spec:"Продукты"},
+  {id:33, addr:"Пр. М-Николаева, 30", lat:62.0355, lon:129.6800, area:25, owner:"ИП Егоров В.В.", type:"Павильон", spec:"Розлив воды"},
+  {id:34, addr:"Покровский тракт, 11 км (пост ГИБДД)", lat:61.9400, lon:129.7600, area:36, owner:"ИП Соловьев А.А.", type:"Павильон", spec:"Продукты"},
+  {id:35, addr:"Пр. М-Николаева, 31", lat:62.0360, lon:129.6780, area:36, owner:"ИП Отай И.В.", type:"Павильон", spec:"Продукты (Теплая остановка)"},
+  {id:36, addr:"Воинская, 9", lat:62.0150, lon:129.6850, area:32, owner:"ООО «Гранит»", type:"Павильон", spec:"Фрукты-овощи"},
+  {id:37, addr:"Ивана Кульбертинова (р-н ДСК)", lat:62.0230, lon:129.6800, area:50, owner:"ООО «Туймаада»", type:"Павильон", spec:"Автосервис"},
+  {id:38, addr:"Красильникова, 9/2", lat:62.0240, lon:129.6700, area:20, owner:"ООО «СТК»", type:"Павильон", spec:"Фрукты-овощи"},
+  {id:39, addr:"Крупская, 19", lat:62.0260, lon:129.6900, area:21, owner:"ИП Никанорова З.И.", type:"Павильон", spec:"Цветы"},
+  {id:40, addr:"Красильникова, 9/1", lat:62.0242, lon:129.6705, area:30, owner:"ООО «Техностой-2020»", type:"Павильон", spec:"Продукты", contract:"Расторгнут", status:"terminated"},
+  {id:41, addr:"Воинская, 6", lat:62.0155, lon:129.6860, area:50, owner:"ИП Абдуллаева М.А.", type:"Павильон", spec:"Продукты"},
+  {id:42, addr:"Покровский тракт, 9 км (Кэскил)", lat:61.9600, lon:129.7450, area:38.1, owner:"ИП Аксенова И.В.", type:"Павильон", spec:"Продукты"},
+  {id:43, addr:"Мкр. Птицефабрика, 16", lat:62.0052, lon:129.6555, area:30, owner:"ИП Романова Л.П.", type:"Павильон", spec:"Общепит"},
+  {id:44, addr:"Мкр. Ильинка 2/3", lat:62.0010, lon:129.6350, area:24.2, owner:"ИП Абдуллаева М.А.", type:"Павильон", spec:"Фрукты-овощи"},
+  {id:45, addr:"Покровское шоссе, 15 км", lat:61.9200, lon:129.7800, area:50, owner:"ИП Николаева Д.А.", type:"Павильон", spec:"Продукты"},
+  {id:46, addr:"Птичная, 7/1", lat:62.0040, lon:129.6500, area:36, owner:"ИП Егоров А.Н.", type:"Павильон", spec:"Продукты"},
+  {id:47, addr:"Покровское шоссе, 10 км", lat:61.9550, lon:129.7550, area:18, owner:"ИП Габышев В.М.", type:"Павильон", spec:"Розлив воды"},
+  {id:48, addr:"Покровский тракт, 5 км, д.28", lat:61.9810, lon:129.7360, area:50, owner:"ИП Оцепов И.С.", type:"Павильон", spec:"Шиномонтаж"}
+];
+
+// === ЦВЕТА ПО СПЕЦИАЛИЗАЦИИ ===
+const specColors = {
+  "Продукты":"#2e7d32", "Хлеб и продукты":"#2e7d32", "Яйцо":"#2e7d32",
+  "Продукты (Теплая остановка)":"#2e7d32",
+  "Фрукты-овощи":"#ef6c00",
+  "Розлив воды":"#1565c0",
+  "Общепит":"#c62828",
+  "Автосервис":"#546e7a", "Автозапчасти":"#546e7a", "Шиномонтаж":"#546e7a",
+  "Теплая остановка":"#f9a825",
+  "Местные товары":"#6a1b9a",
+  "Цветы":"#ad1457",
+  "Газовое оборудование":"#455a64"
+};
+function getColor(spec){ return specColors[spec] || "#888"; }
+
+// === ПРИБЛИЗИТЕЛЬНАЯ ГРАНИЦА АВТОДОРОЖНОГО ОКРУГА ===
+const districtBorder = [
+  [62.0700, 129.6000], [62.0750, 129.6600], [62.0550, 129.7100],
+  [62.0350, 129.7300], [62.0100, 129.7200], [61.9800, 129.7700],
+  [61.9100, 129.7900], [61.9000, 129.7200], [61.9500, 129.6800],
+  [61.9900, 129.6200], [62.0300, 129.6100], [62.0700, 129.6000]
+];
+
+// === СОХРАНЕННЫЕ ПОЛЬЗОВАТЕЛЬСКИЕ ДАННЫЕ ===
+let userNotes = JSON.parse(localStorage.getItem('nto_notes') || '{}');
+
+// === ИНИЦИАЛИЗАЦИЯ КАРТЫ ===
+const map = L.map('map').setView([62.015, 129.690], 12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution:'© OSM', maxZoom:19
+}).addTo(map);
+
+// Спутник (переключение)
+const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  attribution:'© Esri', maxZoom:19
+});
+L.control.layers({"Схема":L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map), "Спутник":satellite}, null, {position:'topright'}).addTo(map);
+
+// Граница округа
+L.polygon(districtBorder, {color:"#1e3a5f", weight:2, fillOpacity:0.05, dashArray:"5,5"}).addTo(map).bindTooltip("Автодорожный округ");
+
+// === МАРКЕРЫ ===
+const markers = {};
+nto_data.forEach(obj => {
+  const status = obj.status || (userNotes[obj.id]?.status) || 'active';
+  const color = getColor(obj.spec);
+  const marker = L.circleMarker([obj.lat, obj.lon], {
+    radius: 8, fillColor: color, color: status==='terminated'?'#c00':(status==='auction'?'#c70':'#fff'),
+    weight: status==='active'?1:2, fillOpacity: 0.85
+  }).addTo(map);
+
+  const note = userNotes[obj.id]?.note || '';
+  const contract = obj.contract || '';
+  marker.bindPopup(`
+    <div style="min-width:220px;">
+      <b>№${obj.id}. ${obj.addr}</b><br>
+      <span style="color:${color};">● ${obj.spec}</span><br>
+      Площадь: ${obj.area} м² | Тип: ${obj.type}<br>
+      ${obj.owner ? `Владелец: ${obj.owner}<br>`:''}
+      ${contract ? `Договор: ${contract}<br>`:''}
+      ${note ? `<hr style="margin:6px 0;"><em>Заметка:</em> ${note}<br>`:''}
+      <button onclick="openModal(${obj.id})" style="margin-top:6px;padding:4px 10px;background:#1e3a5f;color:#fff;border:none;border-radius:3px;cursor:pointer;">Редактировать</button>
+    </div>
+  `);
+  marker.on('click', () => selectItem(obj.id));
+  markers[obj.id] = marker;
+});
+
+// === ЛЕГЕНДА ===
+const legend = L.control({position:'bottomright'});
+legend.onAdd = function(){
+  const div = L.DomUtil.create('div','legend');
+  div.innerHTML = '<b>Специализация</b><br>' +
+    Object.entries(specColors).slice(0,8).map(([k,v])=>`<i style="background:${v}"></i>${k}`).join('<br>');
+  return div;
+};
+legend.addTo(map);
+
+// === СПИСОК В БОКОВОЙ ПАНЕЛИ ===
+let currentFilter = 'all';
+let currentSearch = '';
+
+function renderList(){
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+  nto_data.forEach(obj => {
+    const status = obj.status || userNotes[obj.id]?.status || 'active';
+    if(currentFilter !== 'all' && status !== currentFilter) return;
+    const q = currentSearch.toLowerCase();
+    if(q && !(obj.addr.toLowerCase().includes(q) || obj.spec.toLowerCase().includes(q) || (obj.owner||'').toLowerCase().includes(q))) return;
+
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.dataset.id = obj.id;
+    const statusLabel = status==='terminated'?'<span class="status-terminated">расторгнут</span>':(status==='auction'?'<span class="status-auction">аукцион</span>':'<span class="status-active">действует</span>');
+    div.innerHTML = `
+      <div class="addr"><span class="badge" style="background:${getColor(obj.spec)}">${obj.id}</span>${obj.addr}</div>
+      <div class="meta">${obj.spec} · ${obj.area} м² · ${statusLabel}</div>
+      ${obj.owner?`<div class="meta">${obj.owner}</div>`:''}
+    `;
+    div.onclick = () => { selectItem(obj.id); map.setView([obj.lat, obj.lon], 16); markers[obj.id].openPopup(); };
+    list.appendChild(div);
+  });
+}
+renderList();
+
+function selectItem(id){
+  document.querySelectorAll('.item').forEach(el => el.classList.toggle('selected', +el.dataset.id === id));
+}
+
+// === ПОИСК И ФИЛЬТРЫ ===
+document.getElementById('search').oninput = e => { currentSearch = e.target.value; renderList(); };
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    renderList();
+  };
+});
+
+// === МОДАЛКА РЕДАКТИРОВАНИЯ ===
+let editingId = null;
+function openModal(id){
+  editingId = id;
+  const obj = nto_data.find(o=>o.id===id);
+  document.getElementById('modal-title').textContent = `Объект №${id}`;
+  document.getElementById('modal-addr').textContent = obj.addr;
+  document.getElementById('modal-status').value = userNotes[id]?.status || obj.status || 'active';
+  document.getElementById('modal-note').value = userNotes[id]?.note || '';
+  document.getElementById('modal-bg').classList.add('show');
+}
+function closeModal(){ document.getElementById('modal-bg').classList.remove('show'); editingId=null; }
+function saveModal(){
+  if(!userNotes[editingId]) userNotes[editingId] = {};
+  userNotes[editingId].status = document.getElementById('modal-status').value;
+  userNotes[editingId].note = document.getElementById('modal-note').value;
+  localStorage.setItem('nto_notes', JSON.stringify(userNotes));
+  // перерисовка маркера
+  const obj = nto_data.find(o=>o.id===editingId);
+  const st = userNotes[editingId].status;
+  markers[editingId].setStyle({
+    color: st==='terminated'?'#c00':(st==='auction'?'#c70':'#fff'),
+    weight: st==='active'?1:2
+  });
+  closeModal();
+  renderList();
+  markers[editingId].openPopup();
+}
+</script>
+</body>
+</html>

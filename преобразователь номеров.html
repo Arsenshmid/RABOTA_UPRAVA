@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Нормализация телефонов</title>
+<style>
+  body { font-family: -apple-system, Segoe UI, sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; background:#f4f6f9; }
+  h2 { color:#1e3a5f; }
+  textarea { width:100%; height:120px; padding:10px; border:1px solid #ccc; border-radius:6px; font-family:Consolas, monospace; font-size:14px; box-sizing:border-box; resize: vertical; }
+  button { margin:10px 5px 10px 0; padding:8px 20px; background:#1e3a5f; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:14px; }
+  button:hover { background:#2a4f7f; }
+  .stats { color:#666; font-size:13px; margin-top:6px; }
+</style>
+</head>
+<body>
+<h2>Нормализация телефонов → 8XXXXXXXXXX</h2>
+<p>Вставь номера в любом формате. Пробелы внутри номера не сломают парсинг.</p>
+
+<textarea id="input" placeholder="+7-924-766-23-13
++7 (4112) 70-67-76
+8(924)7662315, 79241112233"></textarea>
+<br>
+<button onclick="convert()">Преобразовать</button>
+<button onclick="copyOut()" style="background:#555;">Копировать результат</button>
+
+<textarea id="output" readonly style="margin-top: 15px; height: 80px;"></textarea>
+
+<div class="stats" id="stats"></div>
+
+<script>
+function normalize(raw) {
+  // Вырезаем всё, кроме цифр
+  let d = raw.replace(/\D/g, '');
+  if (!d) return null;
+  
+  // 11 цифр, начинается с 7 или 8 (мобильные и городские с кодом страны)
+  if (d.length === 11 && (d[0] === '7' || d[0] === '8')) {
+    return '8' + d.slice(1);
+  }
+  // 10 цифр (добавляем 8 в начало)
+  if (d.length === 10) {
+    return '8' + d;
+  }
+  // Всё остальное возвращаем как есть
+  return d;
+}
+
+function convert() {
+  const inputVal = document.getElementById('input').value;
+  
+  // СПЛИТ ТОЛЬКО ПО РАЗДЕЛИТЕЛЯМ НОМЕРОВ (перенос, запятая, точка с запятой)
+  // Пробелы (\s) убраны из регулярки, чтобы не ломать номера вида "+7 (4112) 70-67-76"
+  const lines = inputVal.split(/[\n\r,;]+/).map(s => s.trim()).filter(Boolean);
+  
+  const results = [];
+  let ok = 0, bad = 0;
+
+  lines.forEach(line => {
+    const n = normalize(line);
+    if (!n) return;
+    
+    if (n.length === 11 && n[0] === '8') { 
+      results.push(n); 
+      ok++; 
+    } else { 
+      results.push(n); 
+      bad++; 
+    }
+  });
+
+  // Склеиваем через запятую с пробелом
+  document.getElementById('output').value = results.join(', ');
+  
+  document.getElementById('stats').textContent = 
+    `Корректных: ${ok} | Нестандартных (требуют проверки): ${bad}`;
+}
+
+function copyOut() {
+  const outArea = document.getElementById('output');
+  outArea.select();
+  document.execCommand('copy');
+  
+  const btn = document.querySelector('button[onclick="copyOut()"]');
+  const originalText = btn.textContent;
+  btn.textContent = "Скопировано!";
+  setTimeout(() => btn.textContent = originalText, 1500);
+}
+</script>
+</body>
+</html>

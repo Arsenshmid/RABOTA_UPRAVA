@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Справочник НТО — Автодорожный округ, Якутск</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#f4f6f9; color:#222; }
+  
+  header { background:#1e3a5f; color:#fff; padding:14px 24px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 2px 4px rgba(0,0,0,.15); }
+  header h1 { margin:0; font-size:18px; font-weight:600; }
+  header .subtitle { font-size:12px; opacity:.8; margin-top:2px; }
+  header .stats { display:flex; gap:18px; font-size:13px; }
+  header .stats span b { font-size:16px; }
+  
+  .toolbar { background:#fff; padding:12px 24px; border-bottom:1px solid #e0e4e8; display:flex; gap:12px; align-items:center; flex-wrap:wrap; position:sticky; top:0; z-index:10; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+  #search { flex:1; min-width:240px; padding:8px 12px; border:1px solid #d0d5db; border-radius:6px; font-size:14px; }
+  #search:focus { outline:none; border-color:#1e3a5f; }
+  select.filter { padding:8px 10px; border:1px solid #d0d5db; border-radius:6px; font-size:13px; background:#fff; cursor:pointer; }
+  .view-switch { display:flex; border:1px solid #d0d5db; border-radius:6px; overflow:hidden; }
+  .view-switch button { padding:6px 12px; border:none; background:#fff; cursor:pointer; font-size:13px; }
+  .view-switch button.active { background:#1e3a5f; color:#fff; }
+  
+  .container { padding:20px 24px; max-width:1600px; margin:0 auto; }
+  
+  /* TABLE VIEW */
+  .table-wrap { background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  thead { background:#f0f3f7; }
+  th { text-align:left; padding:10px 12px; font-weight:600; color:#444; border-bottom:2px solid #e0e4e8; white-space:nowrap; cursor:pointer; user-select:none; }
+  th:hover { background:#e4e8ee; }
+  td { padding:9px 12px; border-bottom:1px solid #eef0f3; vertical-align:top; }
+  tr.row { cursor:pointer; transition:background .1s; }
+  tr.row:hover { background:#f7f9fc; }
+  tr.row.selected { background:#e3f2fd; }
+  .num { font-weight:700; color:#1e3a5f; text-align:center; }
+  .addr-cell { font-weight:600; color:#222; }
+  .spec-badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; color:#fff; white-space:nowrap; }
+  .status-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+  .status-active { background:#2e7d32; }
+  .status-terminated { background:#c62828; }
+  .status-auction { background:#ef6c00; }
+  .status-dispute { background:#6a1b9a; }
+  .status-pending { background:#1565c0; }
+  
+  /* CARDS VIEW */
+  .cards { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:14px; }
+  .card { background:#fff; border-radius:8px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.08); cursor:pointer; border-left:4px solid #1e3a5f; transition:transform .1s, box-shadow .1s; }
+  .card:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,.12); }
+  .card .card-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; }
+  .card .card-num { font-weight:700; color:#1e3a5f; font-size:14px; }
+  .card .card-addr { font-weight:600; font-size:14px; margin-bottom:6px; }
+  .card .card-meta { font-size:12px; color:#666; line-height:1.6; }
+  .card .card-meta b { color:#333; }
+  
+  /* MODAL */
+  #modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:100; align-items:flex-start; justify-content:center; padding:40px 20px; overflow-y:auto; }
+  #modal-bg.show { display:flex; }
+  #modal { background:#fff; border-radius:10px; width:720px; max-width:100%; box-shadow:0 10px 40px rgba(0,0,0,.3); }
+  #modal-head { padding:18px 24px; background:#1e3a5f; color:#fff; border-radius:10px 10px 0 0; display:flex; justify-content:space-between; align-items:center; }
+  #modal-head h2 { margin:0; font-size:18px; }
+  #modal-head .close { background:none; border:none; color:#fff; font-size:24px; cursor:pointer; line-height:1; }
+  #modal-body { padding:20px 24px; }
+  .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px 24px; }
+  .detail-row { }
+  .detail-row.full { grid-column:1/-1; }
+  .detail-label { font-size:11px; text-transform:uppercase; color:#888; letter-spacing:.5px; margin-bottom:3px; }
+  .detail-value { font-size:14px; color:#222; line-height:1.5; }
+  .detail-value.mono { font-family:Consolas, Monaco, monospace; font-size:13px; background:#f4f6f9; padding:6px 10px; border-radius:4px; }
+  .note-box { background:#fff8e1; border-left:3px solid #ffb300; padding:10px 14px; border-radius:4px; margin-top:8px; font-size:13px; }
+  .handwritten { background:#f3e5f5; border-left:3px solid #8e24aa; padding:10px 14px; border-radius:4px; margin-top:8px; font-size:13px; font-style:italic; }
+  
+  .empty { text-align:center; padding:60px 20px; color:#888; }
+  .empty b { font-size:18px; display:block; margin-bottom:6px; color:#555; }
+  
+  footer { text-align:center; padding:20px; color:#888; font-size:12px; }
+  
+  @media (max-width: 768px) {
+    .detail-grid { grid-template-columns:1fr; }
+    header { flex-direction:column; gap:10px; align-items:flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Справочник НТО — Автодорожный округ</h1>
+    <div class="subtitle">Схема размещения нестационарных торговых объектов · г. Якутск</div>
+  </div>
+  <div class="stats">
+    <span>Всего: <b id="stat-total">48</b></span>
+    <span>Показано: <b id="stat-shown">48</b></span>
+    <span>Площадь: <b id="stat-area">2076.7</b> м²</span>
+  </div>
+</header>
+
+<div class="toolbar">
+  <input id="search" type="text" placeholder="🔍 Поиск: адрес, владелец, специализация, договор...">
+  <select id="filter-spec" class="filter"><option value="">Все специализации</option></select>
+  <select id="filter-status" class="filter">
+    <option value="">Все статусы</option>
+    <option value="active">Действует</option>
+    <option value="terminated">Расторгнут</option>
+    <option value="auction">На аукцион</option>
+    <option value="dispute">Судебный спор</option>
+    <option value="pending">Под расторжение</option>
+  </select>
+  <select id="filter-type" class="filter">
+    <option value="">Все виды</option>
+    <option value="Павильон">Павильон</option>
+    <option value="Теплая остановка">Теплая остановка</option>
+  </select>
+  <div class="view-switch">
+    <button id="view-table" class="active" onclick="setView('table')">Таблица</button>
+    <button id="view-cards" onclick="setView('cards')">Карточки</button>
+  </div>
+</div>
+
+<div class="container">
+  <div id="content"></div>
+</div>
+
+<div id="modal-bg" onclick="if(event.target===this)closeModal()">
+  <div id="modal">
+    <div id="modal-head">
+      <h2 id="modal-title">Объект</h2>
+      <button class="close" onclick="closeModal()">×</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<footer>Данные: Приложение № 1 к постановлению Окружной администрации г. Якутска от 15.12.2015 № 322п · Справочник сформирован 06.11.2026</footer>
+
+<script>
+// === ДАННЫЕ ===
+const nto = [
+  {id:1,  addr:"Ленина (ост. к/т Лена в сторону города) 45В", area:24, owner:"", type:"Теплая остановка", trade:"Без перемещения", spec:"Теплая остановка", tradeArea:24, term:"", contract:"Договор с ДИЗО", note:"", hand:""},
+  {id:2,  addr:"Сергеляхское шоссе, 4 км", area:15, owner:"ИП Егоров Прокопий Степанович", type:"Павильон", trade:"Без перемещения", spec:"Розлив воды", tradeArea:15, term:"", contract:"Договор расторгнут", note:"Аукцион", hand:""},
+  {id:3,  addr:"Дежнева, 89К", area:32, owner:"ИП Алексеева Наталья Егоровна", type:"Павильон", trade:"Без перемещения", spec:"Продукты", tradeArea:32, term:"", contract:"", note:"", hand:""},
+  {id:4,  addr:"Тимирязева, 51В", area:34, owner:"ООО СК «Опора»", type:"Павильон", trade:"Без перемещения", spec:"Продукты", tradeArea:34, term:"25.08.2019 – 24.08.2027", contract:"Договор № 1/26 от 09.07.2019", note:"", hand:""},
+  {id:5,  addr:"Тимирязева, 53А", area:46, owner:"ИП Кусябкулова Галина Михайловна", type:"Павильон", trade:"Без перемещения", spec:"Продукты", tradeArea:46, term:"28.07.2017 – 27.07.2027", contract:"Договор № 8/21 от 28.07.2017", note:"", hand:""},
+  {id:6,  addr:"Мкр. ПТФ, 16", area:30, owner:"ИП Романова Людмила Павловна", type:"Павильон", trade:"Без перемещения", spec:"Общепит", tradeArea:30, term:"20.09.2024 – 21.09.2032", contract:"Договор № 67 от 20.09.2024, Доп. соглашение №6-25", note:"", hand:"есть рукописная пометка (неразборчиво)"},
+  {id:7,  addr:"Пр. М-Николаева, 27В", area:51, owner:"ИП Соловьев Александр Степанович", type:"Павильон", trade:"Без перемещения", spec:"Общепит", tradeArea:51, term:"05.08.2019 – 03.08.2029", contract:"Договор № 124 от 09.09.2019", note:"", hand:""},
+  {id:8,  addr:"Красильникова, 2/1", area:60, owner:"ИП Копасова Раиса Батрадзовна", type:"Павильон", trade:"Без перемещения", spec:"Продукты", tradeArea:60, term:"12.09.2019 – 11.09.2025", contract:"Договор № 1/29 от 08.10.2019", note:"Решается вопрос о расторжении договора № 1/29 от 08.10.2019", hand:""},
+  {id:9,  addr:"Пр. М-Николаева, 26", area:80, owner:"ООО «Водник»", type:"Павильон", trade:"Без перемещения", spec:"Розлив воды", tradeArea:80, term:"21.05.2025 – 20.12.205", contract:"Договор № 72 от 04.06.2019", note:"Идут судебные разбирательства по факту продления договора № 72 от 04.06.2019", hand:""},
+  {id:10, addr:"Пр. М-Николаева, 26В", area:27, owner:"ИП Андреюк Сергей Анатольевич", type:"Павильон", trade:"Без перемещения", spec:"Автосервис", tradeArea:27, term:"15.04.2026 – 15.04.2027", contract:"ДС №001 к Договору № 2/2 от 08.04.2021", note:"", hand:""},
+  {id:11, addr:"Пр. М-Николаева, 36/6", area:42.3, owner:"ИП Стрекач Александр Владимирович", type:"Павильон", trade:"Без перемещения", spec:"Продукты", tradeArea:42.3, term:"", contract:"Договор расторгнут", note:"Аукцион", hand:""},
+  {id:12, addr:"Пр. М-Николаева, 40", area:29.8, owner:"ИП Миннигареева Алена Игоревна", type:"Павильон", trade:"Без перемещения", spec:"Продукты", tradeArea:29.8, term:"16.08.2022 – 15.08.2027", contract:"Договор № 1/50 от 16.08.2019", note:"", hand:"есть рукописная пометка (неразборчиво)"},
+  {id:13, addr:"Пр. М-Николаева, 40", area:78.7, owner:"АО «Якутский хлебокомбинат»", type:"Павильон", trade:"Без перемещения", spec:"Хлеб и продукты", tradeArea:78.7, term:"21.04.2025 – 21.04.2032", contract:"Договор № 2/8 от 29.03.2019", note:"", hand:"есть рукописная пометка (неразборчиво)"},
+  {id:14, addr:"Пр. М-Николаева, 40/1В", area:49.2, owner:"ИП Степурина Елена Викторовна", type:"Павильон", trade:"Без перемещения", spec:"Продукты", tradeArea:49.2, term:"18.07.2019 – 16.07.2027", contract:"Договор № 1/20 от 09.09.2019", note:"", hand:""},
+  {id:15, addr:"Пр. М-Николаева, 40/5", area:10.6, owner:"ОАО «Якутская птицефабрика»", type:"Павильон", trade:"Без перемещения", spec:"Яйцо", tradeArea:10.6, term:"29.04.2019 – 02.07.2027", contract:"Договор № 1/9 от 02.07.2019", note:"", hand:""},
+  {id:16, addr:"Пр. М-Николаева, 40/7", area:20, owner:"ИП Убратимов Зохиджон Хакимжанович", type:"Павильон", trade:"Без перемещения", spec:"Фрукты-овощи", tradeArea:20, term:"21.06.2019 – 19.06.2027", contract:"Договор № 1/12 от 20.06.2019", note:"", hand:"есть рукописная пометка (неразборчиво)"},
+  {id:17, addr:"Пр. М-Николаева, 40/1", area:26.7, owner:"ИП Миннигареева Алена Игоревна", type:"Павильон", trade:"Без перемещения", spec:"Фрукты-овощи", tradeArea:26.7, term:"02.04.2019 – 02.04.2027", contract:"Договор № 1/49 от 20.03.2019", note:"", hand:"есть рукописная пометка (неразборчиво)"},
+  {id:18, addr:"Сергеляхское шоссе, 1 км (остановка Агату)", area:34, owner:"ИП Летенкова Наталья Ивановна", type:"Павильон", trade:"Без перемещения", spec:"Продукты", tradeArea:34, term:"14.12.2024 – 15.12.2029", contract:"Договор № 1/34 от 13.12.2019", note:"", hand:""},
+  {id:19, addr:"Мкр. ПТФ, 6В", area:93.3, owner:"ООО «Чужина»", type:"Павильон", trade:"Без перемещения", spec:"Продукты", tradeArea:93.3, term:"09.06.2019 – 09.06.2027", contract:"Договор № 1/11 от 21.05.2019", note:"", hand:""},
+  {id:20, addr:"Мкр. ПТФ, 11 (конечная остановка)", area:15.6, owner:"ИП Абдуллаева Мавлюдахон Адахамжоновна", type:"Павильон", trade:"Без перемещения", spec:"Фрукты-овощи", tradeArea:15.6, term:"14.01.2026 – 14.01.2027", contract:"ДС № 01-26 к Договору № 70 от 14.01.2025", note:"", hand:""},
+  {id:21, addr:"Покровский тракт, 10 км (Ефросинья)", area:30.2, owner:"ИП Богатырева Оксана Юрьевна", type:"Павильон", trade:"Без перемещения", spec:"Продукты", tradeArea:30.2, term:"12.09.2025 – 12.09.2028", contract:"ДС №013 к Договору № 1/30 от 21.07.2019", note:"", hand:""},
+  {id:22, addr:"Покровский тракт, 10 км (возле магазина Оазис)", area:13.6, owner:"ИП Сафаров Гылман Сафтар-Оглы", type:"Павильон", trade:"Без перемещения", spec:"Фрукты-овощи", tradeArea:13.6, term:"29.03.2020 – 28.03.2025", contract:"Договор расторгнут", note:"Аукцион", hand:""},
+  {id:23, addr:"Чернышевского, 101А", area:30, owner:"ИП Федоров Дмитрий Александрович", type:"Павильон", trade:"Без перемещения", spec:"Местные товары", tradeArea:30, term:"27.05.2025 – 27.05.2032", contract:"Договор № 1/10 от 09.07.2019", note:"", hand:""},
+  {id:24, addr:"Чернышевского, 101А", area:30, owner:"ИП Федоров Дмитрий Александрович", type:"Павильон", trade:"Без перемещения", spec:"Фрукты-овощи", tradeArea:30, term:"27.05.2025 – 16.09.2029", contract:"Договор № 1/31 от 18.11.2019", note:"", hand:""},
+  {id:25, addr:"Пр. М-Николаева, 25К", area:96, owner:"ИП Васильев Вячеслав Саввич", type:"Павильон", trade:"Без перемещения", spec:"Общепит", tradeArea:96, term:"14.07.2018 – 13.07.2026", contract:"Договор № 17/18 от 14.07.2018", note:"Поступило заявление в комиссию на смену специализации", hand:""},
+  {id:26, addr:"Пр. М-Николаева, 40/5К", area:58, owner:"ИП Чернобривец Олег Григорьевич", type:"Павильон", trade:"Без перемещения", spec:"Продукты", tradeArea:58, term:"20.05.2019 – 29.05.2027", contract:"Договор № 3/42 от 30.05.2019", note:"", hand:""},
+  {id:27, addr:"Дежнева, 81К", area:68.8, owner:"ИП Ноговицын Егор Гаврилевич", type:"Павильон", trade:"Без перемещения", spec:"Автозапчасти", tradeArea:68.8, term:"19.08.2025 – 01.08.2032", contract:"Договор № 1/25 от 01.08.2019", note:"", hand:""},
+  {id:28, addr:"Ленина, 45А", area:128.1, owner:"АО «Якутский хлебокомбинат»", type:"Павильон", trade:"Без перемещения", spec:"Хлеб и продукты", tradeArea:128.1, term:"21.05.2025 – 21.05.2032", contract:"Договор № 4/17 от 02.06.2020", note:"", hand:"есть рукописная пометка (неразборчиво)"},
+  {id:29, addr:"Пр. М-Николаева, 2В", area:130, owner:"ООО «Газкомплект»", type:"Павильон", trade:"Без перемещения", spec:"Газовое оборудование", tradeArea:130, term:"06.07.2019 – 05.07.2029", contract:"Договор № 1/14 от 11.06.2019", note:"", hand:""},
+  {id:30, addr:"Покровский тракт, 10 км (Речевая школа)", area:30, owner:"ИП Лезнев Сергей Олегович", type:"Павильон", trade:"Без перемещения", spec:"Продукты", tradeArea:30, term:"20.12.2024 – 19.12.2029", contract:"Договор № 1/35 от 09.12.2019", note:"", hand:""},
+  {id:31, addr:"Покровский тракт, 5 км (правая сторона)", area:31.5, owner:"ИП Яковлев Виктор Викторович", type:"Павильон", trade:"Без перемещения", spec:"Розлив воды", tradeArea:31.5, term:"28.08.2020 – 27.08.2025", contract:"Договор № 1/44 от 01.09.2020", note:"Компенсационное место", hand:""},
+  {id:32, addr:"Мкр. ПТФ, ул. Студенческая, 1А", area:85, owner:"ИП Франц Лариса Ариевна", type:"Павильон", trade:"Без перемещения", spec:"Продукты", tradeArea:85, term:"27.11.2020 – 26.11.2025", contract:"Договор № 1/45 от 18.11.2020", note:"Аукцион", hand:""},
+  {id:33, addr:"Пр. М-Николаева, 30", area:25, owner:"ИП Егоров Василий Васильевич", type:"Павильон", trade:"Без перемещения", spec:"Розлив воды", tradeArea:25, term:"05.02.2026 – 05.02.2029", contract:"ДС №03-26 к Договору № 1/52А от 14.01.2021", note:"", hand:""},
+  {id:34, addr:"Покровский тракт, 11 км (рядом с постом ГИБДД)", area:36, owner:"ИП Соловьев Александр Афанасьевич", type:"Павильон", trade:"Без перемещения", spec:"Продукты", tradeArea:36, term:"16.01.2026 – 16.01.2027", contract:"ДС № 02-26 к Договору № 1/53А от 26.01.2021", note:"", hand:""},
+  {id:35, addr:"Пр. М-Николаева, 31", area:36, owner:"ИП Отай Ирина Вячеславовна", type:"Павильон", trade:"Без перемещения", spec:"Продукты (Теплая остановка)", tradeArea:36, term:"16.01.2020 – 16.01.2026", contract:"Договор № 1/55А от 26.01.2021", note:"Поступило заявление в комиссию на продление договора № 1/55А от 26.01.2021", hand:""},
+  {id:36, addr:"Воинская, 9", area:32, owner:"ООО «Гранит»", type:"Павильон", trade:"Без перемещения", spec:"Фрукты-овощи", tradeArea:32, term:"02.07.2020 – 01.07.2026", contract:"Договор № 56А от 02.07.2020", note:"", hand:"рукописно: «расторг.» (неразборчиво)"},
+  {id:37, addr:"Ивана Кульбертинова (район ДСК)", area:50, owner:"ООО «Туймаада»", type:"Павильон", trade:"Без перемещения", spec:"Автосервис", tradeArea:50, term:"02.07.2021 – 01.07.2026", contract:"Договор № 61А от 02.07.2021", note:"", hand:"рукописно: «раст.?» (неразборчиво)"},
+  {id:38, addr:"Красильникова, 9/2", area:20, owner:"ООО «СТК»", type:"Павильон", trade:"Без перемещения", spec:"Фрукты-овощи", tradeArea:20, term:"09.06.2021 – 09.06.2027", contract:"Договор № 58А от 09.06.2021", note:"", hand:""},
+  {id:39, addr:"Крупская, 19", area:21, owner:"ИП Никанорова Зоя Ивановна", type:"Павильон", trade:"Без перемещения", spec:"Цветы", tradeArea:21, term:"12.11.2021 – 12.11.2027", contract:"Договор № 60А от 12.11.2021", note:"", hand:""},
+  {id:40, addr:"Красильникова, 9/1", area:30, owner:"ООО «Техностой-2020»", type:"Павильон", trade:"Без перемещения", spec:"Продукты", tradeArea:30, term:"20.05.2022 – 19.05.2023", contract:"Договор расторгнут на Аукцион", note:"", hand:""},
+  {id:41, addr:"Воинская, 6", area:50, owner:"ИП Абдуллаева Мавлюдахон Адахамжоновна", type:"Павильон", trade:"Без перемещения", spec:"Продукты", tradeArea:50, term:"19.07.2023 – 19.07.2027", contract:"Договор № 65 от 20.07.2023", note:"", hand:""},
+  {id:42, addr:"Покровский тракт, 9 км (Кэскил)", area:38.1, owner:"ИП Аксенова Ирина Валентиновна", type:"Павильон", trade:"Без перемещения", spec:"Продукты", tradeArea:38.1, term:"17.02.2022 – 16.02.2028", contract:"Договор № 62А от 17.02.2022", note:"", hand:""},
+  {id:43, addr:"Мкр. Птицефабрика, 16", area:30, owner:"ИП Романова Людмила Павловна", type:"Павильон", trade:"Без перемещения", spec:"Общепит", tradeArea:30, term:"20.09.2024 – 21.09.2032", contract:"Договор № 67 от 20.09.2024", note:"", hand:""},
+  {id:44, addr:"Мкр. Ильинка 2/3", area:24.2, owner:"ИП Абдуллаева Мавлюдахон Адахамжоновна", type:"Павильон", trade:"Без перемещения", spec:"Фрукты-овощи", tradeArea:24.2, term:"19.06.2025 – 18.06.2026", contract:"Договор № 73 от 19.06.2025", note:"", hand:"рукописно: «продлено»"},
+  {id:45, addr:"Покровское шоссе 15 км", area:50, owner:"ИП Николаева Диана Александровна", type:"Павильон", trade:"Без перемещения", spec:"Продукты", tradeArea:50, term:"19.06.2025 – 19.06.2026", contract:"Договор № 74 от 19.06.2025", note:"", hand:"рукописно: «расторжение» (неразборчиво)"},
+  {id:46, addr:"Птичная 7/1", area:36, owner:"ИП Егоров Алексей Николаевич", type:"Павильон", trade:"Без перемещения", spec:"Продукты", tradeArea:36, term:"19.06.2025 – 19.06.2026", contract:"Договор №75 от 19.06.2025", note:"", hand:"есть рукописная пометка (неразборчиво)"},
+  {id:47, addr:"Покровское шоссе 10км 5", area:18, owner:"ИП Габышев Вадим Максимильянович", type:"Павильон", trade:"Без перемещения", spec:"Розлив воды", tradeArea:18, term:"08.06.2026 – 08.06.2027", contract:"Договор № 11 от 08.06.2026", note:"", hand:""},
+  {id:48, addr:"Покровский тракт 5км, д. 28", area:50, owner:"ИП Оцепов Иван Сергеевич", type:"Павильон", trade:"Без перемещения", spec:"Шиномонтаж", tradeArea:50, term:"17.02.2026 – 17.02.2029", contract:"Договор № 23-25 от 17.02.2026", note:"", hand:""}
+];
+
+// === АВТОМАТИЧЕСКИЙ СТАТУС ===
+function getStatus(o){
+  const c = (o.contract||'').toLowerCase();
+  const n = (o.note||'').toLowerCase();
+  if(c.includes('расторг') && n.includes('аукцион')) return 'auction';
+  if(c.includes('расторг')) return 'terminated';
+  if(n.includes('аукцион')) return 'auction';
+  if(n.includes('судебн')) return 'dispute';
+  if(n.includes('расторжени')) return 'pending';
+  if(n.includes('заявлен')) return 'pending';
+  return 'active';
+}
+nto.forEach(o => o.status = getStatus(o));
+
+// === ЦВЕТА СПЕЦИАЛИЗАЦИЙ ===
+const specColors = {
+  "Продукты":"#2e7d32","Хлеб и продукты":"#388e3c","Продукты (Теплая остановка)":"#43a047","Яйцо":"#558b2f",
+  "Фрукты-овощи":"#ef6c00","Розлив воды":"#1565c0","Общепит":"#c62828",
+  "Автосервис":"#546e7a","Автозапчасти":"#607d8b","Шиномонтаж":"#78909c",
+  "Теплая остановка":"#f9a825","Местные товары":"#6a1b9a","Цветы":"#ad1457",
+  "Газовое оборудование":"#455a64"
+};
+function getColor(s){ return specColors[s] || "#888"; }
+
+const statusLabels = {
+  active:{t:"Действует", c:"#2e7d32"},
+  terminated:{t:"Расторгнут", c:"#c62828"},
+  auction:{t:"На аукцион", c:"#ef6c00"},
+  dispute:{t:"Судебный спор", c:"#6a1b9a"},
+  pending:{t:"Под расторжение / заявление", c:"#1565c0"}
+};
+
+// === ЗАПОЛНЕНИЕ ФИЛЬТРА СПЕЦИАЛИЗАЦИЙ ===
+const specs = [...new Set(nto.map(o=>o.spec))].sort();
+const specSel = document.getElementById('filter-spec');
+specs.forEach(s => { const opt = document.createElement('option'); opt.value=s; opt.textContent=s; specSel.appendChild(opt); });
+
+// === РЕНДЕР ===
+let currentView = 'table';
+let selectedId = null;
+
+function filterData(){
+  const q = document.getElementById('search').value.toLowerCase().trim();
+  const fs = document.getElementById('filter-spec').value;
+  const fst = document.getElementById('filter-status').value;
+  const ft = document.getElementById('filter-type').value;
+  return nto.filter(o => {
+    if(fs && o.spec !== fs) return false;
+    if(fst && o.status !== fst) return false;
+    if(ft && o.type !== ft) return false;
+    if(!q) return true;
+    const hay = `${o.id} ${o.addr} ${o.owner} ${o.spec} ${o.contract} ${o.note} ${o.type}`.toLowerCase();
+    return hay.includes(q);
+  });
+}
+
+function render(){
+  const data = filterData();
+  document.getElementById('stat-shown').textContent = data.length;
+  const totalArea = data.reduce((s,o)=>s+o.area,0).toFixed(1);
+  
+  const content = document.getElementById('content');
+  if(data.length === 0){
+    content.innerHTML = '<div class="empty"><b>Ничего не найдено</b>Попробуйте изменить параметры поиска или сбросить фильтры.</div>';
+    return;
+  }
+  
+  if(currentView === 'table'){
+    content.innerHTML = `
+      <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th style="width:40px">№</th>
+          <th>Местонахождение</th>
+          <th>Площадь</th>
+          <th>Владелец</th>
+          <th>Специализация</th>
+          <th>Срок</th>
+          <th>Статус</th>
+        </tr></thead>
+        <tbody>
+          ${data.map(o => {
+            const st = statusLabels[o.status];
+            return `<tr class="row ${selectedId===o.id?'selected':''}" onclick="openModal(${o.id})">
+              <td class="num">${o.id}</td>
+              <td class="addr-cell">${o.addr}</td>
+              <td>${o.area} м²</td>
+              <td>${o.owner || '—'}</td>
+              <td><span class="spec-badge" style="background:${getColor(o.spec)}">${o.spec}</span></td>
+              <td>${o.term || '—'}</td>
+              <td><span class="status-dot" style="background:${st.c}"></span>${st.t}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+      </div>`;
+  } else {
+    content.innerHTML = `<div class="cards">${data.map(o => {
+      const st = statusLabels[o.status];
+      return `<div class="card" style="border-left-color:${st.c}" onclick="openModal(${o.id})">
+        <div class="card-head">
+          <span class="card-num">№ ${o.id}</span>
+          <span class="spec-badge" style="background:${getColor(o.spec)}">${o.spec}</span>
+        </div>
+        <div class="card-addr">${o.addr}</div>
+        <div class="card-meta">
+          <b>Площадь:</b> ${o.area} м²<br>
+          <b>Владелец:</b> ${o.owner || '—'}<br>
+          <b>Срок:</b> ${o.term || 'не указан'}<br>
+          <span class="status-dot" style="background:${st.c}"></span><b style="color:${st.c}">${st.t}</b>
+        </div>
+      </div>`;
+    }).join('')}</div>`;
+  }
+}
+
+function setView(v){
+  currentView = v;
+  document.getElementById('view-table').classList.toggle('active', v==='table');
+  document.getElementById('view-cards').classList.toggle('active', v==='cards');
+  render();
+}
+
+// === МОДАЛКА ===
+function openModal(id){
+  const o = nto.find(x=>x.id===id);
+  if(!o) return;
+  selectedId = id;
+  const st = statusLabels[o.status];
+  document.getElementById('modal-title').textContent = `Объект № ${o.id}`;
+  document.getElementById('modal-body').innerHTML = `
+    <div class="detail-grid">
+      <div class="detail-row full">
+        <div class="detail-label">Местонахождение</div>
+        <div class="detail-value" style="font-weight:600;font-size:15px;">${o.addr}</div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">Площадь объекта</div>
+        <div class="detail-value mono">${o.area} м²</div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">Торговая площадь</div>
+        <div class="detail-value mono">${o.tradeArea} м²</div>
+      </div>
+      <div class="detail-row full">
+        <div class="detail-label">Владелец / пользователь</div>
+        <div class="detail-value">${o.owner || '—'}</div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">Вид объекта</div>
+        <div class="detail-value">${o.type}</div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">Вид торговли</div>
+        <div class="detail-value">${o.trade}</div>
+      </div>
+      <div class="detail-row full">
+        <div class="detail-label">Специализация</div>
+        <div class="detail-value"><span class="spec-badge" style="background:${getColor(o.spec)}">${o.spec}</span></div>
+      </div>
+      <div class="detail-row full">
+        <div class="detail-label">Срок размещения</div>
+        <div class="detail-value mono">${o.term || 'не указан'}</div>
+      </div>
+      <div class="detail-row full">
+        <div class="detail-label">Условия / договор</div>
+        <div class="detail-value mono">${o.contract || '—'}</div>
+      </div>
+      <div class="detail-row full">
+        <div class="detail-label">Статус</div>
+        <div class="detail-value"><span class="status-dot" style="background:${st.c}"></span><b style="color:${st.c}">${st.t}</b></div>
+      </div>
+      ${o.note ? `<div class="detail-row full"><div class="detail-label">Примечание</div><div class="note-box">${o.note}</div></div>` : ''}
+      ${o.hand ? `<div class="detail-row full"><div class="detail-label">Рукописная пометка в оригинале</div><div class="handwritten">${o.hand}</div></div>` : ''}
+      <div class="detail-row full" style="margin-top:10px;">
+        <div class="detail-label">Собственник земельного участка</div>
+        <div class="detail-value">ГО «город Якутск»</div>
+      </div>
+    </div>
+  `;
+  document.getElementById('modal-bg').classList.add('show');
+  render();
+}
+function closeModal(){ document.getElementById('modal-bg').classList.remove('show'); selectedId=null; render(); }
+
+// === СОБЫТИЯ ===
+document.getElementById('search').oninput = render;
+document.getElementById('filter-spec').onchange = render;
+document.getElementById('filter-status').onchange = render;
+document.getElementById('filter-type').onchange = render;
+
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+
+render();
+</script>
+</body>
+</html>
