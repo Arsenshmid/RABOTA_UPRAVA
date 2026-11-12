@@ -1,0 +1,122 @@
+/* Стили хост-контейнера, чтобы не мешать странице */
+#spritz-host-root {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2147483647;
+    pointer-events: none;
+}
+
+#spritz-host-root.active {
+    pointer-events: auto;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(4px);
+}
+
+/* Внутренние стили Shadow DOM */
+.spritz-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #e0e0e0;
+}
+
+.spritz-reader-box {
+    background: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 40px 60px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    text-align: center;
+    min-width: 400px;
+}
+
+.spritz-word-display {
+    font-family: "Courier New", Courier, monospace;
+    font-size: 32px;
+    font-weight: bold;
+    color: #ffffff;
+    height: 50px;
+    line-height: 50px;
+    letter-spacing: 1px;
+    margin-bottom: 20px;
+    /* Разделяем на части для выравнивания ORP */
+    display: flex;
+    justify-content: center;
+}
+
+.spritz-left {
+    display: inline-block;
+    text-align: right;
+    min-width: 150px; /* Подстраивается под длинные слова */
+}
+
+.spritz-center {
+    color: #ff3b30; /* Красная метка ORP */
+    display: inline-block;
+    width: 20px;
+    text-align: center;
+}
+
+.spritz-right {
+    display: inline-block;
+    text-align: left;
+    min-width: 150px;
+}
+
+.spritz-controls {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.spritz-btn {
+    background: #333;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.spritz-btn:hover {
+    background: #444;
+}
+
+.spritz-btn.primary {
+    background: #007aff;
+    border-color: #007aff;
+}
+
+.spritz-btn.primary:hover {
+    background: #005bb5;
+}
+
+.spritz-wpm {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 15px;
+    font-size: 14px;
+    color: #aaa;
+}
+
+.spritz-wpm input[type="range"] {
+    width: 200px;
+    cursor: pointer;
+}
+
+.spritz-progress {
+    margin-top: 15px;
+    font-size: 12px;
+    color: #666;
+}

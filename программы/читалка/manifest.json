@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Spritz Reader",
+  "version": "1.0",
+  "description": "Speed reading selected text via Spritz method.",
+  "permissions": ["activeTab"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "commands": {
+    "read-selection": {
+      "suggested_key": {
+        "default": "Alt+Shift+R",
+        "mac": "Alt+Shift+R"
+      },
+      "description": "Read selected text with Spritz"
+    }
+  }
+}
