@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>CyberSamurai Reader X</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css"
+    />
+    <style>
+      :root {
+        --primary-color: #ff007f;
+        --secondary-color: #7f00ff;
+        --background-color: #1e1e2e;
+        --panel-color: rgba(30, 30, 46, 0.8);
+        --text-color: #ffffff;
+        --accent-color: #ff00ff;
+      }
+
+      body {
+        background: url('sakura.gif') no-repeat center center fixed;
+        background-size: cover;
+        color: var(--text-color);
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
+      }
+
+      .overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          to bottom,
+          rgba(30, 30, 46, 0.9),
+          rgba(30, 30, 46, 0.9)
+        );
+        z-index: 1;
+      }
+
+      .container {
+        position: relative;
+        z-index: 2;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 50px 30px;
+      }
+
+      .cyber-title {
+        font-size: 4em;
+        text-align: center;
+        color: var(--accent-color);
+        text-shadow: 0 0 10px var(--accent-color), 0 0 20px var(--accent-color);
+        margin-bottom: 50px;
+        animation: neon-glow 1.5s infinite alternate;
+        font-family: 'Press Start 2P', cursive;
+      }
+
+      @keyframes neon-glow {
+        from {
+          text-shadow: 0 0 10px var(--accent-color), 0 0 20px var(--accent-color);
+        }
+        to {
+          text-shadow: 0 0 20px var(--accent-color), 0 0 30px var(--accent-color);
+        }
+      }
+
+      .panel {
+        background: var(--panel-color);
+        backdrop-filter: blur(5px);
+        border: 2px solid var(--accent-color);
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 30px;
+      }
+
+      .cyber-textarea {
+        width: 100%;
+        height: 200px;
+        background: transparent;
+        border: 2px solid var(--accent-color);
+        color: var(--text-color);
+        font-size: 1em;
+        padding: 15px;
+        border-radius: 10px;
+        resize: none;
+      }
+
+      .cyber-textarea::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      .cyber-textarea:focus {
+        outline: none;
+        box-shadow: 0 0 10px var(--accent-color);
+      }
+
+      .cyber-button {
+        background: transparent;
+        border: 2px solid var(--accent-color);
+        color: var(--accent-color);
+        padding: 15px 30px;
+        font-size: 1em;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .cyber-button::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          120deg,
+          transparent,
+          rgba(255, 0, 127, 0.4),
+          transparent
+        );
+        transition: all 650ms;
+      }
+
+      .cyber-button:hover {
+        color: var(--text-color);
+        box-shadow: 0 0 10px var(--accent-color);
+      }
+
+      .cyber-button:hover::before {
+        left: 100%;
+      }
+
+      .control-panel {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+      }
+
+      .control-group {
+        flex: 1;
+        min-width: 250px;
+      }
+
+      .cyber-slider {
+        width: 100%;
+        appearance: none;
+        height: 10px;
+        background: var(--panel-color);
+        border: 2px solid var(--accent-color);
+        border-radius: 5px;
+        outline: none;
+        transition: background 0.3s;
+      }
+
+      .cyber-slider::-webkit-slider-thumb {
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        background: var(--accent-color);
+        cursor: pointer;
+border-radius: 50%;
+      }
+
+      .cyber-select {
+        width: 100%;
+        background: transparent;
+        border: 2px solid var(--accent-color);
+        color: var(--text-color);
+        padding: 10px;
+        border-radius: 10px;
+      }
+
+      .reading-display {
+        width: 100%;
+        height: 200px;
+        background: transparent;
+        border: 2px solid var(--accent-color);
+        color: #ffffff;
+        text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+        font-size: 3em;
+        text-align: center;
+        line-height: 200px;
+        border-radius: 10px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .reading-display::before,
+      .reading-display::after {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 2px;
+        background: var(--accent-color);
+        animation: scanline 4s infinite;
+      }
+
+      .reading-display::before {
+        top: 0;
+      }
+
+      .reading-display::after {
+        bottom: 0;
+      }
+
+      @keyframes scanline {
+        0% {
+          opacity: 0;
+        }
+        50% {
+          opacity: 0.5;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+
+      .progress-container {
+        width: 100%;
+        height: 20px;
+        background: var(--panel-color);
+        border: 2px solid var(--accent-color);
+        border-radius: 10px;
+        overflow: hidden;
+        cursor: pointer;
+        position: relative;
+      }
+
+      .progress-container:hover::after {
+        content: "⇄";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: var(--accent-color);
+        font-size: 16px;
+        text-shadow: 0 0 5px var(--accent-color);
+        opacity: 0.8;
+      }
+
+      .progress-bar {
+        height: 100%;
+        background: var(--accent-color);
+        width: 0%;
+        transition: width 0.3s ease;
+      }
+
+      .stat-card {
+        background: var(--panel-color);
+        border: 2px solid var(--accent-color);
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        flex: 1;
+        min-width: 150px;
+      }
+
+      .stat-card h5 {
+        color: var(--accent-color);
+        margin-bottom: 10px;
+      }
+
+      .stat-card p {
+        font-size: 2em;
+        margin: 0;
+      }
+
+      ::-webkit-scrollbar {
+        width: 10px;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: var(--accent-color);
+        border-radius: 5px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--panel-color);
+      }
+    </style>
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="overlay"></div>
+    <div class="container">
+      <h1 class="cyber-title">CyberSamurai Reader X</h1>
+
+      <div class="panel">
+        <textarea
+          id="inputText"
+          class="cyber-textarea"
+          placeholder="Введите текст для чтения..."
+        ></textarea>
+      </div>
+
+      <div class="control-panel">
+        <div class="control-group">
+          <label for="readingSpeed">Скорость чтения:</label>
+          <input
+            type="range"
+            id="readingSpeed"
+            class="cyber-slider"
+            min="100"
+            max="1000"
+            value="200"
+          />
+        </div>
+        <div class="control-group">
+          <label for="wordCount">Слов за раз:</label>
+          <input
+            type="range"
+            id="wordCount"
+            class="cyber-slider"
+            min="1"
+            max="5"
+            value="1"
+          />
+        </div>
+        <div class="control-group">
+          <label for="fontSize">Размер шрифта:</label>
+          <input
+            type="range"
+            id="fontSize"
+            class="cyber-slider"
+            min="2"
+            max="6"
+            value="3"
+            step="0.5"
+          />
+        </div>
+        <div class="control-group">
+          <label for="textToSpeech">Текст в речь:</label>
+          <select id="textToSpeech" class="cyber-select">
+            <option value="off">Выключено</option>
+            <option value="on">Включено</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label for="voiceSelect">Выбор голоса:</label>
+          <select id="voiceSelect" class="cyber-select"></select>
+        </div>
+      </div>
+
+      <div class="text-center mb-4">
+        <button id="toggleBtn" class="cyber-button">
+          <i class="fas fa-play"></i> Начать
+        </button>
+        <button id="resetBtn" class="cyber-button">
+          <i class="fas fa-redo"></i> Сброс
+        </button>
+      </div>
+
+      <div class="reading-display" id="readingDisplay">
+        Текст появится здесь
+      </div>
+
+      <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+
+      <div class="control-panel">
+        <div class="stat-card">
+          <h5>Прочитано слов</h5>
+          <p id="wordsRead">0</p>
+        </div>
+        <div class="stat-card">
+          <h5>Всего слов</h5>
+          <p id="totalWords">0</p>
+        </div>
+        <div class="stat-card">
+          <h5>Осталось</h5>
+          <p id="wordsLeft">0</p>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+
+    <script>
+      class CyberSamuraiReader {
+        constructor() {
+          this.elements = {
+            inputText: document.getElementById('inputText'),
+            readingSpeed: document.getElementById('readingSpeed'),
+            wordCount: document.getElementById('wordCount'),
+            fontSize: document.getElementById('fontSize'),
+            textToSpeech: document.getElementById('textToSpeech'),
+            voiceSelect: document.getElementById('voiceSelect'),
+            toggleBtn: document.getElementById('toggleBtn'),
+            resetBtn: document.getElementById('resetBtn'),
+            readingDisplay: document.getElementById('readingDisplay'),
+            progressBar: document.getElementById('progressBar'),
+            wordsRead: document.getElementById('wordsRead'),
+            totalWords: document.getElementById('totalWords'),
+            wordsLeft: document.getElementById('wordsLeft'),
+          };
+
+          this.words = [];
+          this.index = 0;
+          this.isReading = false;
+          this.readingInterval = null;
+          this.speechSynthesis = window.speechSynthesis;
+          this.speechUtterance = null;
+          this.voice = null;
+          this.isDragging = false;
+
+          this.init();
+        }
+
+        init() {
+          this.elements.toggleBtn.addEventListener('click', () => this.toggleReading());
+          this.elements.resetBtn.addEventListener('click', () => this.resetReading());
+          this.elements.readingSpeed.addEventListener('input', () => this.adjustSpeed());
+          this.elements.fontSize.addEventListener('input', () => this.adjustFontSize());
+
+          // Добавляем обработчик для ползунка прогресса
+          this.elements.progressBar.parentElement.addEventListener('click', (event) => this.handleProgressBarClick(event));
+          
+          // Обработчики для перетаскивания ползунка
+          this.elements.progressBar.parentElement.addEventListener('mousedown', (event) => {
+            this.isDragging = true;
+            this.handleProgressBarClick(event);
+          });
+          
+          document.addEventListener('mousemove', (event) => {
+            if (this.isDragging) {
+              this.handleProgressBarClick(event);
+            }
+          });
+          
+          document.addEventListener('mouseup', () => {
+            this.isDragging = false;
+          });
+
+          this.populateVoiceList();
+          if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = () => this.populateVoiceList();
+          }
+
+          // Обработчик для пробела как универсальной кнопки управления
+          document.addEventListener('keydown', (event) => {
+            if (event.code === 'Space') {
+              event.preventDefault(); // Предотвращаем прокрутку страницы пробелом
+              
+              // Если чтение завершено, начинаем сначала
+              if (this.index >= this.words.length && this.words.length > 0) {
+                this.resetAndStartReading();
+              } else {
+                // Иначе переключаем старт/пауза
+                this.toggleReading();
+              }
+            }
+          });
+        }
+
+        populateVoiceList() {
+          const voices = this.speechSynthesis.getVoices();
+          this.elements.voiceSelect.innerHTML = '';
+          voices.forEach((voice, index) => {
+            const option = document.createElement('option');
+            option.textContent = `${voice.name} (${voice.lang})`;
+            option.value = index;
+            this.elements.voiceSelect.appendChild(option);
+          });
+          if (voices.length > 0) {
+            this.voice = voices[this.elements.voiceSelect.value];
+          }
+          this.elements.voiceSelect.addEventListener('change', () => {
+            this.voice = voices[this.elements.voiceSelect.value];
+          });
+        }
+
+        toggleReading() {
+          if (this.isReading) {
+            this.pauseReading();
+            this.elements.toggleBtn.innerHTML = '<i class="fas fa-play"></i> Начать';
+          } else {
+            this.startReading();
+            this.elements.toggleBtn.innerHTML = '<i class="fas fa-pause"></i> Пауза';
+          }
+        }
+
+        startReading() {
+          const text = this.elements.inputText.value.trim();
+          if (!text) return;
+
+          if (this.index === 0) {
+            this.words = text.split(/\s+/);
+            this.elements.totalWords.textContent = this.words.length;
+            this.updateStats();
+          }
+
+          const speed = 60000 / parseInt(this.elements.readingSpeed.value, 10);
+          this.isReading = true;
+
+          if (this.elements.textToSpeech.value === 'on') {
+            this.readAloud(this.words.slice(this.index).join(' '));
+          } else {
+            this.readingInterval = setInterval(() => this.displayNextWords(), speed);
+          }
+        }
+
+        pauseReading() {
+          this.isReading = false;
+          clearInterval(this.readingInterval);
+          if (this.speechUtterance) {
+            this.speechSynthesis.cancel();
+          }
+        }
+
+        resetReading() {
+          this.pauseReading();
+          this.index = 0;
+          this.updateStats();
+          this.elements.readingDisplay.textContent = 'Текст появится здесь';
+          this.updateProgress();
+          this.elements.toggleBtn.innerHTML = '<i class="fas fa-play"></i> Начать';
+        }
+
+        // Новая функция для сброса и немедленного запуска
+        resetAndStartReading() {
+          this.resetReading();
+          this.startReading();
+        }
+
+        displayNextWords() {
+          const wordCount = parseInt(this.elements.wordCount.value, 10);
+          const nextWords = this.words.slice(this.index, this.index + wordCount).join(' ');
+          this.elements.readingDisplay.textContent = nextWords;
+          this.index += wordCount;
+
+          if (this.index >= this.words.length) {
+            this.pauseReading();
+            this.elements.toggleBtn.innerHTML = '<i class="fas fa-play"></i> Начать';
+            return;
+          }
+
+          this.updateStats();
+          this.updateProgress();
+        }
+
+        readAloud(text) {
+          this.speechUtterance = new SpeechSynthesisUtterance(text);
+          this.speechUtterance.voice = this.voice;
+          this.speechUtterance.rate = this.elements.readingSpeed.value / 200;
+          this.speechUtterance.onend = () => {
+            this.isReading = false;
+            this.index = this.words.length; // Устанавливаем индекс в конец
+            this.updateStats();
+            this.updateProgress();
+            this.elements.toggleBtn.innerHTML = '<i class="fas fa-play"></i> Начать';
+          };
+          this.speechSynthesis.speak(this.speechUtterance);
+        }
+
+        adjustSpeed() {
+          if (this.isReading) {
+            clearInterval(this.readingInterval);
+            this.startReading();
+          }
+        }
+
+        adjustFontSize() {
+          const fontSize = this.elements.fontSize.value;
+          this.elements.readingDisplay.style.fontSize = `${fontSize}em`;
+        }
+
+        updateStats() {
+          this.elements.wordsRead.textContent = this.index;
+          this.elements.wordsLeft.textContent = this.words.length - this.index;
+        }
+
+        updateProgress() {
+          const progress = this.words.length > 0 ? (this.index / this.words.length) * 100 : 0;
+          this.elements.progressBar.style.width = `${progress}%`;
+        }
+
+        // Обработчик клика и перетаскивания по ползунку прогресса
+        handleProgressBarClick(event) {
+          const progressContainer = this.elements.progressBar.parentElement;
+          const rect = progressContainer.getBoundingClientRect();
+          const ratio = (event.clientX - rect.left) / rect.width;
+          const clampedRatio = Math.max(0, Math.min(1, ratio)); // Ограничиваем значение от 0 до 1
+          
+          // Рассчитываем новый индекс
+          if (this.words.length > 0) {
+            const wasReading = this.isReading;
+            
+            // Если чтение активно, приостанавливаем его
+            if (wasReading) {
+              this.pauseReading();
+            }
+            
+            // Устанавливаем новую позицию
+            this.index = Math.floor(clampedRatio * this.words.length);
+            
+            // Обновляем отображение текущего слова
+            const wordCount = parseInt(this.elements.wordCount.value, 10);
+            const nextWords = this.words.slice(this.index, this.index + wordCount).join(' ');
+            this.elements.readingDisplay.textContent = nextWords;
+            
+            // Обновляем статистику и прогресс
+            this.updateStats();
+            this.updateProgress();
+            
+            // Если чтение было активно, возобновляем его
+            if (wasReading) {
+              this.startReading();
+            }
+          }
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        new CyberSamuraiReader();
+      });
+    </script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const img = new Image();
+        img.src = "sakura.gif";
+        img.onload = () => {
+          document.body.style.background = "url('sakura.gif') no-repeat center center fixed";
+          document.body.style.backgroundSize = "cover";
+        };
+        img.onerror = () => {
+          const onlineImg = new Image();
+          onlineImg.src = "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExb21mZGtreWl3NWk2bTN1b2loMms5ZzQ1NXhsM3J3bDczdGk5dWEyYiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/30u0K0Albaf04/giphy.webp";
+          onlineImg.onload = () => {
+            document.body.style.background = `url('${onlineImg.src}') no-repeat center center fixed`;
+            document.body.style.backgroundSize = "cover";
+          };
+        };
+      });
+    </script>
+  </body>
+</html>
